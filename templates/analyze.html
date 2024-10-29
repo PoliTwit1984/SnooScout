@@ -7,82 +7,192 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --dark-bg: #1a1a1a;
+            --darker-bg: #141414;
+            --card-bg: #242424;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --highlight-color: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
         .header {
-            background-color: #f8f9fa;
-            padding: 20px 0;
-            margin-bottom: 20px;
+            background-color: var(--darker-bg);
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px var(--shadow-color);
         }
+
+        .header h1 {
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: -1px;
+            background: linear-gradient(45deg, var(--accent), #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
         .post-card {
-            margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: background-color 0.3s ease;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            box-shadow: 8px 8px 16px var(--shadow-color),
+                       -8px -8px 16px var(--highlight-color);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
         }
+
         .post-card.selected {
-            background-color: #e3f2fd;
-            border: 2px solid #0d6efd;
+            border-color: var(--accent);
+            transform: translateY(-4px);
         }
+
+        .post-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
         .stats-badge {
-            background-color: #f8f9fa;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            color: #666;
-            margin-right: 10px;
-            margin-bottom: 8px;
+            background-color: var(--darker-bg);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-right: 0.75rem;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+            box-shadow: inset 2px 2px 4px var(--shadow-color),
+                       inset -2px -2px 4px var(--highlight-color);
+        }
+
+        .post-content {
+            background-color: var(--darker-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            box-shadow: inset 4px 4px 8px var(--shadow-color),
+                       inset -4px -4px 8px var(--highlight-color);
+            white-space: pre-wrap;
+            color: var(--text-secondary);
+        }
+
+        .btn-visit {
+            background-color: transparent;
+            color: var(--text-primary);
+            border: 2px solid var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-decoration: none;
             display: inline-block;
         }
-        .stats-badge i {
-            margin-right: 4px;
-        }
-        .btn-visit {
-            font-size: 0.9rem;
-            padding: 4px 8px;
-            color: #0d6efd;
-            background: none;
-            border: 1px solid #0d6efd;
-            border-radius: 4px;
-            text-decoration: none;
-        }
+
         .btn-visit:hover {
-            color: white;
-            background-color: #0d6efd;
+            background-color: var(--text-secondary);
+            color: var(--dark-bg);
+            transform: translateY(-2px);
         }
-        .back-button {
-            margin-bottom: 20px;
-        }
-        #noPostsMessage {
-            text-align: center;
-            padding: 50px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-            margin-top: 20px;
-        }
-        .post-content {
-            margin: 15px 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-            white-space: pre-wrap;
-        }
+
         .post-date {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.9rem;
-            margin-bottom: 10px;
+            margin-bottom: 1rem;
         }
+
         .action-buttons {
-            text-align: center;
-            margin: 30px 0;
             position: sticky;
-            bottom: 20px;
-            background: white;
-            padding: 15px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            border-radius: 8px;
+            bottom: 2rem;
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 8px 8px 16px var(--shadow-color),
+                       -8px -8px 16px var(--highlight-color);
+            z-index: 1000;
+            text-align: center;
+            margin-top: 2rem;
         }
+
+        .btn-primary {
+            background: var(--accent);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:disabled {
+            background: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        .btn-outline-primary {
+            color: var(--text-primary);
+            border: 2px solid var(--accent);
+            background: transparent;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--accent);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+        }
+
         .select-post-btn {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 1rem;
+            right: 1rem;
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .select-post-btn.selected {
+            background: var(--accent);
+            color: var(--text-primary);
+        }
+
+        #noPostsMessage {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: 8px 8px 16px var(--shadow-color),
+                       -8px -8px 16px var(--highlight-color);
+        }
+
+        .card-title {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-right: 6rem;
         }
     </style>
 </head>
@@ -94,7 +204,7 @@
     </div>
 
     <div class="container">
-        <div class="back-button">
+        <div class="mb-4">
             <a href="/" class="btn btn-outline-primary">
                 <i class="fas fa-arrow-left"></i> Back to Search
             </a>
@@ -102,7 +212,7 @@
 
         <div id="noPostsMessage" style="display: none;">
             <h3>No Posts Available</h3>
-            <p>Please go back and search for posts to analyze.</p>
+            <p class="text-secondary">Please go back and search for posts to analyze.</p>
             <a href="/" class="btn btn-primary mt-3">
                 <i class="fas fa-search"></i> Search Posts
             </a>
@@ -152,15 +262,13 @@
             if (selectedPosts.has(postId)) {
                 selectedPosts.delete(postId);
                 card.classList.remove('selected');
+                button.classList.remove('selected');
                 button.innerHTML = '<i class="far fa-square"></i> Select';
-                button.classList.remove('btn-primary');
-                button.classList.add('btn-outline-primary');
             } else {
                 selectedPosts.add(postId);
                 card.classList.add('selected');
+                button.classList.add('selected');
                 button.innerHTML = '<i class="fas fa-check-square"></i> Selected';
-                button.classList.remove('btn-outline-primary');
-                button.classList.add('btn-primary');
             }
 
             document.getElementById('selectedCount').textContent = selectedPosts.size;
@@ -190,11 +298,11 @@
 
             allPosts.forEach((post, index) => {
                 const card = document.createElement('div');
-                card.className = 'post-card card position-relative';
+                card.className = 'post-card';
                 card.setAttribute('data-post-id', post.id);
                 card.innerHTML = `
                     <div class="card-body">
-                        <button onclick="togglePostSelection('${post.id}')" class="btn btn-outline-primary select-post-btn">
+                        <button onclick="togglePostSelection('${post.id}')" class="select-post-btn">
                             <i class="far fa-square"></i> Select
                         </button>
                         <h5 class="card-title">${post.title}</h5>
