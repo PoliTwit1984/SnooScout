@@ -17,6 +17,7 @@
             --accent-hover: #4338ca;
             --shadow-color: rgba(0, 0, 0, 0.3);
             --highlight-color: rgba(255, 255, 255, 0.05);
+            --success: #10B981;
         }
 
         body {
@@ -86,7 +87,7 @@
                        inset -2px -2px 4px var(--highlight-color);
         }
 
-        .idea-section {
+        .idea-section, .ai-analysis-section, .content-requests-section {
             background-color: var(--darker-bg);
             padding: 1.5rem;
             border-radius: 12px;
@@ -95,7 +96,7 @@
                        inset -4px -4px 8px var(--highlight-color);
         }
 
-        .idea-section h5 {
+        .idea-section h5, .ai-analysis-section h5, .content-requests-section h5 {
             color: var(--text-primary);
             font-size: 1.1rem;
             margin-bottom: 1rem;
@@ -104,7 +105,7 @@
             gap: 0.5rem;
         }
 
-        .idea-input {
+        .idea-input, .content-requests-input {
             width: 100%;
             min-height: 150px;
             background-color: var(--card-bg);
@@ -119,13 +120,17 @@
             transition: all 0.3s ease;
         }
 
-        .idea-input:focus {
+        .content-requests-input {
+            min-height: 100px;
+        }
+
+        .idea-input:focus, .content-requests-input:focus {
             outline: none;
             box-shadow: inset 3px 3px 6px var(--shadow-color),
                        inset -3px -3px 6px var(--highlight-color);
         }
 
-        .idea-input::placeholder {
+        .idea-input::placeholder, .content-requests-input::placeholder {
             color: var(--text-secondary);
         }
 
@@ -140,6 +145,9 @@
             z-index: 1000;
             text-align: center;
             margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
         }
 
         .btn-primary {
@@ -151,9 +159,14 @@
             transition: all 0.3s ease;
         }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             background: var(--accent-hover);
             transform: translateY(-2px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .btn-outline-primary {
@@ -209,6 +222,75 @@
         .alert-info {
             border-left: 4px solid var(--accent);
         }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+
+        .loading-content {
+            text-align: center;
+            color: var(--text-primary);
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--card-bg);
+            border-top: 5px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ai-analysis-content {
+            white-space: pre-wrap;
+            font-family: monospace;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--card-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .analyze-btn {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .alert-danger {
+            border-left: 4px solid #ef4444;
+        }
     </style>
 </head>
 <body>
@@ -229,14 +311,36 @@
             <!-- Analysis content will be loaded here via JavaScript -->
         </div>
 
+        <div class="content-requests-section">
+            <h5><i class="fas fa-lightbulb"></i> Content Creation Requests</h5>
+            <textarea 
+                id="contentRequests"
+                class="content-requests-input" 
+                placeholder="Specify your content creation requests (e.g., '3 YouTube shorts ideas, 1 YouTube long idea, 1 blog post idea')"
+            ></textarea>
+        </div>
+
         <div class="action-buttons">
             <button onclick="saveIdeas()" class="btn btn-primary btn-lg">
-                <i class="fas fa-save"></i> Save All Ideas & Notes
+                <i class="fas fa-save"></i> Save Ideas & Notes
+            </button>
+            <button onclick="analyzeWithAI()" class="analyze-btn btn-lg" id="analyzeButton" disabled>
+                <i class="fas fa-robot"></i> Analyze with AI
             </button>
         </div>
     </div>
 
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Analyzing Posts...</h3>
+            <p>This may take a few moments</p>
+        </div>
+    </div>
+
     <script>
+        let selectedPosts = [];
+
         function formatNumber(num) {
             if (!num && num !== 0) return '0';
             num = parseInt(num);
@@ -262,6 +366,61 @@
             });
         }
 
+        async function analyzeWithAI() {
+            const analyzeButton = document.getElementById('analyzeButton');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const contentRequests = document.getElementById('contentRequests').value.trim();
+            
+            try {
+                analyzeButton.disabled = true;
+                loadingOverlay.style.display = 'flex';
+
+                for (const post of selectedPosts) {
+                    const aiSection = document.querySelector(`#ai-analysis-${post.id}`);
+                    if (!aiSection) continue;
+
+                    // Get user notes for this post
+                    const userNotes = document.querySelector(`.idea-input[data-post-id="${post.id}"]`)?.value.trim();
+
+                    const response = await fetch('/analyze_post', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ 
+                            post_id: post.id,
+                            user_notes: userNotes,
+                            content_requests: contentRequests
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        aiSection.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                    } else {
+                        aiSection.innerHTML = `
+                            <h5><i class="fas fa-robot"></i> AI Analysis</h5>
+                            <pre class="ai-analysis-content">${data.analysis}</pre>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'alert alert-danger';
+                errorMessage.textContent = `Error performing analysis: ${error.message}`;
+                document.getElementById('analysisContainer').appendChild(errorMessage);
+            } finally {
+                loadingOverlay.style.display = 'none';
+                analyzeButton.disabled = false;
+            }
+        }
+
         function saveIdeas() {
             const savedIdeas = [];
             document.querySelectorAll('.idea-input').forEach(input => {
@@ -276,10 +435,14 @@
             localStorage.setItem('savedIdeas', JSON.stringify(savedIdeas));
             
             // Show save confirmation
-            const button = document.querySelector('.action-buttons button');
+            const button = document.querySelector('.action-buttons .btn-primary');
             const originalText = button.innerHTML;
             button.innerHTML = '<i class="fas fa-check"></i> Saved Successfully';
             button.style.background = '#10B981';
+            
+            // Enable analyze button after saving
+            document.getElementById('analyzeButton').disabled = false;
+
             setTimeout(() => {
                 button.innerHTML = originalText;
                 button.style.background = '';
@@ -301,10 +464,12 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const selectedPosts = JSON.parse(localStorage.getItem('selectedPosts') || '[]');
-            const analysisContainer = document.getElementById('analysisContainer');
-
-            if (!selectedPosts.length) {
+            // Load selected posts from localStorage
+            const storedPosts = localStorage.getItem('selectedPosts');
+            console.log('Stored posts:', storedPosts); // Debug log
+            
+            if (!storedPosts) {
+                const analysisContainer = document.getElementById('analysisContainer');
                 analysisContainer.innerHTML = `
                     <div class="alert alert-info">
                         <h4>No Posts Selected</h4>
@@ -313,6 +478,9 @@
                 `;
                 return;
             }
+
+            selectedPosts = JSON.parse(storedPosts);
+            const analysisContainer = document.getElementById('analysisContainer');
 
             selectedPosts.forEach(post => {
                 const card = document.createElement('div');
@@ -349,6 +517,10 @@
                             data-post-id="${post.id}"
                             data-post-title="${post.title}"
                         ></textarea>
+                    </div>
+                    <div class="ai-analysis-section" id="ai-analysis-${post.id}">
+                        <h5><i class="fas fa-robot"></i> AI Analysis</h5>
+                        <p class="text-secondary">Click "Analyze with AI" to generate insights</p>
                     </div>
                 `;
                 analysisContainer.appendChild(card);

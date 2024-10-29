@@ -282,7 +282,9 @@
             const selectedPostsArray = Array.from(selectedPosts);
             const postsToAnalyze = allPosts.filter(post => selectedPostsArray.includes(post.id));
             
+            // Store selected posts and navigate
             localStorage.setItem('selectedPosts', JSON.stringify(postsToAnalyze));
+            console.log('Selected posts:', postsToAnalyze); // Debug log
             window.location.href = '/post_analysis';
         }
 
@@ -295,6 +297,11 @@
                 noPostsMessage.style.display = 'block';
                 return;
             }
+
+            // Clear any previously selected posts
+            selectedPosts.clear();
+            document.getElementById('selectedCount').textContent = '0';
+            document.getElementById('nextButton').disabled = true;
 
             allPosts.forEach((post, index) => {
                 const card = document.createElement('div');

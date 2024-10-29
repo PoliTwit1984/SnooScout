@@ -316,6 +316,7 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const subreddits = await response.json();
+                console.log('Received subreddits:', subreddits); // Debug log
                 displaySubreddits(subreddits);
             } catch (error) {
                 console.error('Error searching subreddits:', error);
@@ -329,7 +330,7 @@
             const container = document.getElementById('subredditsContainer');
             container.innerHTML = '';
 
-            if (!subreddits || subreddits.length === 0) {
+            if (!subreddits || !Array.isArray(subreddits) || subreddits.length === 0) {
                 container.innerHTML = '<div class="alert alert-info">No subreddits found.</div>';
                 return;
             }
@@ -338,7 +339,7 @@
                 const card = document.createElement('div');
                 card.className = 'subreddit-card';
                 card.innerHTML = `
-                    <h3 class="subreddit-title">${subreddit.title}</h3>
+                    <h3 class="subreddit-title">${subreddit.title || subreddit.name}</h3>
                     <p class="text-secondary">${subreddit.description || 'No description available'}</p>
                     <div class="subreddit-stats">
                         <span class="stats-badge">
@@ -391,8 +392,10 @@
                     throw new Error(posts.error || 'Failed to load posts');
                 }
                 
+                // Only store allPosts, let user select which ones to analyze
                 localStorage.setItem('allPosts', JSON.stringify(posts));
-                localStorage.setItem('selectedPosts', JSON.stringify(posts));
+                // Clear any previously selected posts
+                localStorage.removeItem('selectedPosts');
                 
                 window.location.href = '/analyze';
             } catch (error) {
