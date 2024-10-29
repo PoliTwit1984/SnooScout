@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnooScout - Analysis Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .header {
+            background-color: #f8f9fa;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+        .analysis-card {
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .post-title {
+            color: #1a1a1a;
+            margin-bottom: 15px;
+        }
+        .post-content {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            white-space: pre-wrap;
+        }
+        .stats-badge {
+            background-color: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: #666;
+            margin-right: 10px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+        .idea-section {
+            background-color: #fff;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .idea-input {
+            width: 100%;
+            min-height: 150px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        .action-buttons {
+            position: sticky;
+            bottom: 20px;
+            background: white;
+            padding: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 30px;
+        }
+        .btn-visit {
+            font-size: 0.9rem;
+            padding: 4px 8px;
+            color: #0d6efd;
+            background: none;
+            border: 1px solid #0d6efd;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-top: 10px;
+            display: inline-block;
+        }
+        .btn-visit:hover {
+            color: white;
+            background-color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>Add Ideas & Notes</h1>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="mb-4">
+            <a href="/analyze" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> Back to Posts
+            </a>
+        </div>
+
+        <div id="analysisContainer">
+            <!-- Analysis content will be loaded here via JavaScript -->
+        </div>
+
+        <div class="action-buttons">
+            <button onclick="saveIdeas()" class="btn btn-primary btn-lg">
+                <i class="fas fa-save"></i> Save All Ideas & Notes
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function formatNumber(num) {
+            if (!num && num !== 0) return '0';
+            num = parseInt(num);
+            if (isNaN(num)) return '0';
+            
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            }
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num.toLocaleString();
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function saveIdeas() {
+            const savedIdeas = [];
+            document.querySelectorAll('.idea-input').forEach(input => {
+                if (input.value.trim()) {
+                    savedIdeas.push({
+                        postId: input.dataset.postId,
+                        postTitle: input.dataset.postTitle,
+                        idea: input.value.trim()
+                    });
+                }
+            });
+            localStorage.setItem('savedIdeas', JSON.stringify(savedIdeas));
+            alert('Ideas and notes saved successfully!');
+        }
+
+        function loadSavedIdeas() {
+            try {
+                const savedIdeas = JSON.parse(localStorage.getItem('savedIdeas')) || [];
+                savedIdeas.forEach(savedIdea => {
+                    const input = document.querySelector(`.idea-input[data-post-id="${savedIdea.postId}"]`);
+                    if (input) {
+                        input.value = savedIdea.idea;
+                    }
+                });
+            } catch (e) {
+                console.error('Error loading saved ideas:', e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectedPosts = JSON.parse(localStorage.getItem('selectedPosts') || '[]');
+            const analysisContainer = document.getElementById('analysisContainer');
+
+            if (!selectedPosts.length) {
+                analysisContainer.innerHTML = `
+                    <div class="alert alert-info">
+                        <h4>No Posts Selected</h4>
+                        <p>Please go back and select some posts first.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            selectedPosts.forEach(post => {
+                const card = document.createElement('div');
+                card.className = 'analysis-card';
+                card.innerHTML = `
+                    <h3 class="post-title">${post.title}</h3>
+                    <div class="post-date">
+                        <i class="far fa-calendar-alt"></i> 
+                        ${formatDate(post.created_utc)}
+                    </div>
+                    <div class="stats-container">
+                        <span class="stats-badge">
+                            <i class="fas fa-arrow-up"></i>
+                            ${formatNumber(post.score)} upvotes
+                        </span>
+                        <span class="stats-badge">
+                            <i class="fas fa-comments"></i>
+                            ${formatNumber(post.num_comments)} comments
+                        </span>
+                        <span class="stats-badge">
+                            <i class="fas fa-eye"></i>
+                            ${formatNumber(post.view_count || 0)} views
+                        </span>
+                    </div>
+                    <div class="post-content">${post.selftext || 'No content available'}</div>
+                    <a href="${post.permalink}" target="_blank" class="btn btn-visit">
+                        <i class="fas fa-external-link-alt"></i> View on Reddit
+                    </a>
+                    <div class="idea-section">
+                        <h5><i class="fas fa-lightbulb"></i> Ideas & Notes</h5>
+                        <textarea 
+                            class="idea-input" 
+                            placeholder="Write your ideas, insights, or notes about this post here..."
+                            data-post-id="${post.id}"
+                            data-post-title="${post.title}"
+                        ></textarea>
+                    </div>
+                `;
+                analysisContainer.appendChild(card);
+            });
+
+            // Load any previously saved ideas
+            loadSavedIdeas();
+        });
+    </script>
+</body>
+</html>
