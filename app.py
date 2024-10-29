@@ -156,6 +156,25 @@ def analyze_post():
         print(f"Error analyzing post: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/suggest_subreddits')
+def suggest_subreddits():
+    query = request.args.get('query', '').strip()
+    if not query or len(query) < 2:
+        return jsonify([])
+    
+    try:
+        suggestions = []
+        for subreddit in reddit.subreddits.search(query, limit=5):
+            suggestions.append({
+                'name': subreddit.display_name,
+                'title': getattr(subreddit, 'title', subreddit.display_name),
+                'subscribers': getattr(subreddit, 'subscribers', 0)
+            })
+        return jsonify(suggestions)
+    except Exception as e:
+        print(f"Error getting subreddit suggestions: {str(e)}")
+        return jsonify([])
+
 @app.route('/search_subreddit')
 def search_subreddit():
     query = request.args.get('query', '')

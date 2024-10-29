@@ -48,6 +48,7 @@
             margin: 2rem 0;
             box-shadow: 8px 8px 16px var(--shadow-color),
                        -8px -8px 16px var(--highlight-color);
+            position: relative;
         }
 
         .input-group {
@@ -72,6 +73,58 @@
 
         .form-control::placeholder {
             color: var(--text-secondary);
+        }
+
+        .suggestions-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: var(--darker-bg);
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            z-index: 1050;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .suggestions-dropdown.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .suggestion-item {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--card-bg);
+            transition: all 0.2s ease;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .suggestion-item:hover,
+        .suggestion-item.selected {
+            background-color: var(--card-bg);
+            transform: translateX(5px);
+        }
+
+        .suggestion-title {
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .suggestion-subscribers {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
         }
 
         .btn-primary {
@@ -203,11 +256,12 @@
         <div class="search-section">
             <div class="input-group">
                 <input type="text" id="searchInput" class="form-control" 
-                       placeholder="Search for a subreddit...">
+                       placeholder="Search for a subreddit..." autocomplete="off">
                 <button class="btn btn-primary" onclick="searchSubreddits()">
                     <i class="fas fa-search"></i> Search
                 </button>
             </div>
+            <div id="suggestionsDropdown" class="suggestions-dropdown"></div>
             <div id="searchError" class="error-message" style="display: none;"></div>
         </div>
 
@@ -271,10 +325,122 @@
         let isLoading = false;
         let currentSubreddit = '';
         let postOptionsModal;
+        let selectedSuggestionIndex = -1;
+        let debounceTimeout;
 
         document.addEventListener('DOMContentLoaded', function() {
             postOptionsModal = new bootstrap.Modal(document.getElementById('postOptionsModal'));
+            setupSearchInput();
         });
+
+        function setupSearchInput() {
+            const searchInput = document.getElementById('searchInput');
+            const suggestionsDropdown = document.getElementById('suggestionsDropdown');
+
+            searchInput.addEventListener('input', function() {
+                clearTimeout(debounceTimeout);
+                debounceTimeout = setTimeout(() => {
+                    const query = this.value.trim();
+                    if (query.length >= 2) {
+                        fetchSuggestions(query);
+                    } else {
+                        hideSuggestions();
+                    }
+                }, 300);
+            });
+
+            searchInput.addEventListener('keydown', function(e) {
+                const suggestions = document.querySelectorAll('.suggestion-item');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, suggestions.length - 1);
+                    updateSelectedSuggestion(suggestions);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, -1);
+                    updateSelectedSuggestion(suggestions);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectedSuggestionIndex >= 0 && suggestions[selectedSuggestionIndex]) {
+                        selectSuggestion(suggestions[selectedSuggestionIndex].getAttribute('data-subreddit'));
+                    } else {
+                        searchSubreddits();
+                    }
+                } else if (e.key === 'Escape') {
+                    hideSuggestions();
+                }
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !suggestionsDropdown.contains(e.target)) {
+                    hideSuggestions();
+                }
+            });
+        }
+
+        function showSuggestions() {
+            const dropdown = document.getElementById('suggestionsDropdown');
+            dropdown.style.display = 'block';
+            // Force reflow
+            dropdown.offsetHeight;
+            dropdown.classList.add('show');
+        }
+
+        function hideSuggestions() {
+            const dropdown = document.getElementById('suggestionsDropdown');
+            dropdown.classList.remove('show');
+            selectedSuggestionIndex = -1;
+            setTimeout(() => {
+                if (!dropdown.classList.contains('show')) {
+                    dropdown.style.display = 'none';
+                }
+            }, 200);
+        }
+
+        async function fetchSuggestions(query) {
+            try {
+                const response = await fetch(`/suggest_subreddits?query=${encodeURIComponent(query)}`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const suggestions = await response.json();
+                displaySuggestions(suggestions);
+            } catch (error) {
+                console.error('Error fetching suggestions:', error);
+            }
+        }
+
+        function displaySuggestions(suggestions) {
+            const dropdown = document.getElementById('suggestionsDropdown');
+            if (!suggestions.length) {
+                hideSuggestions();
+                return;
+            }
+
+            dropdown.innerHTML = suggestions.map((subreddit, index) => `
+                <div class="suggestion-item" data-subreddit="${subreddit.name}" onclick="selectSuggestion('${subreddit.name}')">
+                    <div class="suggestion-title">r/${subreddit.name}</div>
+                    <div class="suggestion-subscribers">${formatNumber(subreddit.subscribers)} subscribers</div>
+                </div>
+            `).join('');
+
+            showSuggestions();
+            selectedSuggestionIndex = -1;
+        }
+
+        function updateSelectedSuggestion(suggestions) {
+            suggestions.forEach((item, index) => {
+                item.classList.toggle('selected', index === selectedSuggestionIndex);
+                if (index === selectedSuggestionIndex) {
+                    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            });
+        }
+
+        function selectSuggestion(subredditName) {
+            document.getElementById('searchInput').value = subredditName;
+            hideSuggestions();
+            searchSubreddits();
+        }
 
         function showLoading() {
             isLoading = true;
@@ -309,6 +475,7 @@
             showLoading();
             hideError();
             document.getElementById('subredditsContainer').innerHTML = '';
+            hideSuggestions();
 
             try {
                 const response = await fetch(`/search_subreddit?query=${encodeURIComponent(query)}`);
@@ -316,7 +483,7 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const subreddits = await response.json();
-                console.log('Received subreddits:', subreddits); // Debug log
+                console.log('Received subreddits:', subreddits);
                 displaySubreddits(subreddits);
             } catch (error) {
                 console.error('Error searching subreddits:', error);
@@ -392,9 +559,7 @@
                     throw new Error(posts.error || 'Failed to load posts');
                 }
                 
-                // Only store allPosts, let user select which ones to analyze
                 localStorage.setItem('allPosts', JSON.stringify(posts));
-                // Clear any previously selected posts
                 localStorage.removeItem('selectedPosts');
                 
                 window.location.href = '/analyze';
@@ -418,12 +583,6 @@
             }
             return num.toLocaleString();
         }
-
-        document.getElementById('searchInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchSubreddits();
-            }
-        });
     </script>
 </body>
 </html>
